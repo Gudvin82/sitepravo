@@ -1,0 +1,40 @@
+{
+  "name": "sitepravo",
+  "version": "1.0.0",
+  "description": "JavaScript/Node.js client for SitePravo — Legal & Compliance Audit API",
+  "main": "sitepravo.cjs.js",
+  "module": "sitepravo.js",
+  "exports": {
+    ".": {
+      "import": "./sitepravo.js",
+      "require": "./sitepravo.cjs.js"
+    }
+  },
+  "type": "module",
+  "files": [
+    "sitepravo.js",
+    "sitepravo.cjs.js",
+    "sitepravo.d.ts",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node build.js",
+    "test": "node examples/basic_audit.js"
+  },
+  "keywords": [
+    "legal-audit",
+    "compliance",
+    "gdpr",
+    "russia",
+    "fz-152",
+    "sitepravo",
+    "privacy"
+  ],
+  "author": "SitePravo <hello@sitepravo.ru>",
+  "license": "Apache-2.0",
+  "homepage": "https://sitepravo.ru",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Gudvin82/sitepravo.git"
+  }
+}
