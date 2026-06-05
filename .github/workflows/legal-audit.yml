@@ -1,10 +1,12 @@
 name: Legal Compliance Audit
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'URL сайта для аудита (если не задан vars.SITE_URL)'
+        required: false
+        type: string
   schedule:
     - cron: '0 9 * * 1'   # Каждый понедельник 9:00 UTC
 
@@ -14,33 +16,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Check SITE_URL
+        run: |
+          URL="${{ inputs.url || vars.SITE_URL }}"
+          if [ -z "$URL" ]; then
+            echo "⚠️  SITE_URL не задан."
+            echo "Добавьте его: Settings → Variables → Actions → New repository variable → SITE_URL = https://ваш-сайт.ru"
+            exit 1
+          fi
+          echo "URL: $URL"
+
       - name: Run SitePravo Audit
         uses: Gudvin82/sitepravo@v1
         with:
-          url: ${{ vars.SITE_URL }}
+          url: ${{ inputs.url || vars.SITE_URL }}
           fail_on_critical: true
-          # fail_on_high: false     # раскомментировать для строгого режима
-          # profile: legal_first    # legal_first (default) | technical_first
-
-      # ─── Пример ручного curl (если не используете Action) ───────────────
-      # - name: Manual Audit via curl
-      #   run: |
-      #     AUDIT_ID=$(curl -s -X POST https://sitepravo.ru/api/audits \
-      #       -H "Content-Type: application/json" \
-      #       -d "{\"url\": \"$SITE_URL\"}" | jq -r '.id')
-      #
-      #     for i in $(seq 1 60); do
-      #       sleep 5
-      #       RESULT=$(curl -s "https://sitepravo.ru/api/audits/$AUDIT_ID")
-      #       STATUS=$(echo "$RESULT" | jq -r '.status')
-      #       if [ "$STATUS" = "completed" ]; then
-      #         CRITICAL=$(echo "$RESULT" | jq '.summary.critical')
-      #         echo "Grade: $(echo "$RESULT" | jq -r '.grade')"
-      #         echo "Critical: $CRITICAL"
-      #         [ "$CRITICAL" -gt 0 ] && exit 1 || exit 0
-      #       fi
-      #       [ "$STATUS" = "failed" ] && echo "Audit failed" && exit 1
-      #     done
-      #     echo "Timeout" && exit 1
-      #   env:
-      #     SITE_URL: ${{ vars.SITE_URL }}
+          # fail_on_high: false
+          # profile: legal_first
