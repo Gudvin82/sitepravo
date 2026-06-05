@@ -56,13 +56,33 @@ runs:
 
         echo "🔍 Запуск аудита: $URL (профиль: $PROFILE)"
 
-        # Запустить аудит
-        LAUNCH=$(curl -sf -X POST "$BASE/audits" \
+        # Запустить аудит (без -f, чтобы обработать 429 DOMAIN_COOLDOWN)
+        LAUNCH_BODY=$(mktemp)
+        HTTP_CODE=$(curl -s -o "$LAUNCH_BODY" -w "%{http_code}" -X POST "$BASE/audits" \
           -H "Content-Type: application/json" \
           -d "{\"url\":\"$URL\",\"profile\":\"$PROFILE\",\"consentAccepted\":true,\"legalBasisConfirmed\":true}")
+        LAUNCH=$(cat "$LAUNCH_BODY"); rm -f "$LAUNCH_BODY"
 
-        AUDIT_ID=$(echo "$LAUNCH" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
-        echo "Audit ID: $AUDIT_ID"
+        AUDIT_ID=$(echo "$LAUNCH" | python3 -c "
+        import sys, json
+        d = json.load(sys.stdin)
+        # 201 Created → 'id'; 429 DOMAIN_COOLDOWN → 'auditId'
+        aid = d.get('id') or d.get('auditId')
+        if not aid:
+            print('NO_ID', file=sys.stderr)
+            sys.exit(1)
+        print(aid)
+        ")
+
+        if [ "$HTTP_CODE" = "429" ]; then
+          echo "⏳ Домен недавно проверялся (DOMAIN_COOLDOWN). Подключаемся к существующему аудиту: $AUDIT_ID"
+        elif [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
+          echo "✅ Аудит запущен. ID: $AUDIT_ID"
+        else
+          echo "❌ Ошибка запуска аудита (HTTP $HTTP_CODE): $LAUNCH"
+          exit 1
+        fi
+
         echo "audit_id=$AUDIT_ID" >> $GITHUB_OUTPUT
 
         # Polling — status находится в lifecycle.status
@@ -70,7 +90,7 @@ runs:
         while [ $ELAPSED -lt $MAX_WAIT ]; do
           sleep 5
           ELAPSED=$((ELAPSED + 5))
-          RESULT=$(curl -sf "$BASE/audits/$AUDIT_ID")
+          RESULT=$(curl -s "$BASE/audits/$AUDIT_ID")
           STATUS=$(echo "$RESULT" | python3 -c "
         import sys,json
         d=json.load(sys.stdin)
