@@ -10,7 +10,7 @@ BASE="https://sitepravo.ru/api"
 echo "=== Запуск аудита ==="
 RESPONSE=$(curl -s -X POST "$BASE/audits" \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://example.com"}')
+  -d '{"url": "https://example.com", "agreeToTerms": true, "hasLegalBasis": true}')
 
 echo "$RESPONSE"
 AUDIT_ID=$(echo "$RESPONSE" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)

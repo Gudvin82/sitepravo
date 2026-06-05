@@ -59,7 +59,7 @@ runs:
         # Запустить аудит
         LAUNCH=$(curl -sf -X POST "$BASE/audits" \
           -H "Content-Type: application/json" \
-          -d "{\"url\":\"$URL\",\"profile\":\"$PROFILE\"}")
+          -d "{\"url\":\"$URL\",\"profile\":\"$PROFILE\",\"agreeToTerms\":true,\"hasLegalBasis\":true}")
 
         AUDIT_ID=$(echo "$LAUNCH" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
         echo "Audit ID: $AUDIT_ID"

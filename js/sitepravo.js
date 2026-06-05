@@ -123,7 +123,7 @@ export class SitePravo {
   async startAudit(url, profile = 'legal_first') {
     const data = await this._fetch('/audits', {
       method: 'POST',
-      body: JSON.stringify({ url, profile }),
+      body: JSON.stringify({ url, profile, agreeToTerms: true, hasLegalBasis: true }),
     });
     return data.id;
   }
