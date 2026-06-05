@@ -29,7 +29,7 @@ inputs:
 
 outputs:
   grade:
-    description: 'Trust Grade (A+, A, B, C, D или ❗)'
+    description: 'Trust Grade (EXCELLENT, GOOD, FAIR, POOR, CRITICAL)'
   score:
     description: 'Числовой score (0-100)'
   critical_count:
@@ -56,7 +56,7 @@ runs:
 
         echo "🔍 Запуск аудита: $URL (профиль: $PROFILE)"
 
-        # Запустить аудит (consentAccepted + legalBasisConfirmed — обязательные поля)
+        # Запустить аудит
         LAUNCH=$(curl -sf -X POST "$BASE/audits" \
           -H "Content-Type: application/json" \
           -d "{\"url\":\"$URL\",\"profile\":\"$PROFILE\",\"consentAccepted\":true,\"legalBasisConfirmed\":true}")
@@ -65,27 +65,34 @@ runs:
         echo "Audit ID: $AUDIT_ID"
         echo "audit_id=$AUDIT_ID" >> $GITHUB_OUTPUT
 
-        # Polling
+        # Polling — status находится в lifecycle.status
         ELAPSED=0
         while [ $ELAPSED -lt $MAX_WAIT ]; do
           sleep 5
           ELAPSED=$((ELAPSED + 5))
           RESULT=$(curl -sf "$BASE/audits/$AUDIT_ID")
-          STATUS=$(echo "$RESULT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status',''))")
+          STATUS=$(echo "$RESULT" | python3 -c "
+        import sys,json
+        d=json.load(sys.stdin)
+        print(d.get('lifecycle',{}).get('status','') or d.get('status',''))
+        ")
 
           echo "  [$ELAPSED s] status: $STATUS"
 
           if [ "$STATUS" = "completed" ]; then
             eval $(echo "$RESULT" | python3 -c "
         import sys, json
+        from collections import Counter
         d = json.load(sys.stdin)
-        grade = d.get('grade','?')
-        score = d.get('score', 0)
-        s = d.get('summary', {})
-        crit = s.get('critical', 0)
-        high = s.get('high', 0)
-        med  = s.get('medium', 0)
-        low  = s.get('low', 0)
+        scores = d.get('scores', {})
+        grade = scores.get('trustGrade', '?')
+        score = scores.get('overall', 0)
+        findings = d.get('findings', [])
+        sev = Counter(f.get('severity','?') for f in findings)
+        crit = sev.get('critical', 0)
+        high = sev.get('high', 0)
+        med  = sev.get('medium', 0)
+        low  = sev.get('low', 0)
         print(f'GRADE={grade}')
         print(f'SCORE={score}')
         print(f'CRITICAL={crit}')
@@ -101,14 +108,12 @@ runs:
             echo "  Report      : https://sitepravo.ru/report/$AUDIT_ID"
             echo "════════════════════════════════════════"
 
-            # GitHub outputs
             echo "grade=$GRADE"             >> $GITHUB_OUTPUT
             echo "score=$SCORE"             >> $GITHUB_OUTPUT
             echo "critical_count=$CRITICAL" >> $GITHUB_OUTPUT
             echo "high_count=$HIGH"         >> $GITHUB_OUTPUT
             echo "report_url=https://sitepravo.ru/report/$AUDIT_ID" >> $GITHUB_OUTPUT
 
-            # Fail conditions
             FAIL=0
             if [ "${{ inputs.fail_on_critical }}" = "true" ] && [ "$CRITICAL" -gt 0 ]; then
               echo "❌ Обнаружены критические нарушения ($CRITICAL шт.) — аудит не пройден"
