@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       url:
-        description: 'URL сайта для аудита (если не задан vars.SITE_URL)'
+        description: 'URL сайта для аудита (переопределяет vars.SITEPRAVO)'
         required: false
         type: string
   schedule:
@@ -16,20 +16,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check SITE_URL
-        run: |
-          URL="${{ inputs.url || vars.SITE_URL }}"
-          if [ -z "$URL" ]; then
-            echo "⚠️  SITE_URL не задан."
-            echo "Добавьте его: Settings → Variables → Actions → New repository variable → SITE_URL = https://ваш-сайт.ru"
-            exit 1
-          fi
-          echo "URL: $URL"
-
       - name: Run SitePravo Audit
         uses: Gudvin82/sitepravo@v1
         with:
-          url: ${{ inputs.url || vars.SITE_URL }}
+          url: ${{ inputs.url || vars.SITEPRAVO }}
           fail_on_critical: true
           # fail_on_high: false
           # profile: legal_first
