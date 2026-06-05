@@ -113,7 +113,7 @@ class SitePravo:
         """Запустить аудит. Возвращает audit ID."""
         resp = self._session.post(
             f"{self.base_url}/audits",
-            json={"url": url, "profile": profile, "agreeToTerms": True, "hasLegalBasis": True},
+            json={"url": url, "profile": profile, "consentAccepted": True, "legalBasisConfirmed": True},
             timeout=self.timeout,
         )
         resp.raise_for_status()

@@ -56,10 +56,10 @@ runs:
 
         echo "🔍 Запуск аудита: $URL (профиль: $PROFILE)"
 
-        # Запустить аудит
+        # Запустить аудит (consentAccepted + legalBasisConfirmed — обязательные поля)
         LAUNCH=$(curl -sf -X POST "$BASE/audits" \
           -H "Content-Type: application/json" \
-          -d "{\"url\":\"$URL\",\"profile\":\"$PROFILE\",\"agreeToTerms\":true,\"hasLegalBasis\":true}")
+          -d "{\"url\":\"$URL\",\"profile\":\"$PROFILE\",\"consentAccepted\":true,\"legalBasisConfirmed\":true}")
 
         AUDIT_ID=$(echo "$LAUNCH" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
         echo "Audit ID: $AUDIT_ID"
@@ -76,15 +76,6 @@ runs:
           echo "  [$ELAPSED s] status: $STATUS"
 
           if [ "$STATUS" = "completed" ]; then
-            # Разбор результата
-            python3 << 'PYEOF'
-        import sys, json, os
-
-        with open('/dev/stdin') as f:
-            pass  # already read via env
-
-        PYEOF
-
             eval $(echo "$RESULT" | python3 -c "
         import sys, json
         d = json.load(sys.stdin)
@@ -111,10 +102,10 @@ runs:
             echo "════════════════════════════════════════"
 
             # GitHub outputs
-            echo "grade=$GRADE"            >> $GITHUB_OUTPUT
-            echo "score=$SCORE"            >> $GITHUB_OUTPUT
+            echo "grade=$GRADE"             >> $GITHUB_OUTPUT
+            echo "score=$SCORE"             >> $GITHUB_OUTPUT
             echo "critical_count=$CRITICAL" >> $GITHUB_OUTPUT
-            echo "high_count=$HIGH"        >> $GITHUB_OUTPUT
+            echo "high_count=$HIGH"         >> $GITHUB_OUTPUT
             echo "report_url=https://sitepravo.ru/report/$AUDIT_ID" >> $GITHUB_OUTPUT
 
             # Fail conditions
