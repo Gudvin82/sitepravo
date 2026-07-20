@@ -60,7 +60,7 @@ runs:
         LAUNCH_BODY=$(mktemp)
         HTTP_CODE=$(curl -s -o "$LAUNCH_BODY" -w "%{http_code}" -X POST "$BASE/audits" \
           -H "Content-Type: application/json" \
-          -d "{\"url\":\"$URL\",\"profile\":\"$PROFILE\",\"consentAccepted\":true,\"legalBasisConfirmed\":true}")
+          -d "{\"url\":\"$URL\",\"profile\":\"$PROFILE\",\"source\":\"sitepravo_github_action\",\"consentAccepted\":true,\"pdConsentAccepted\":true,\"legalBasisConfirmed\":true,\"scanMode\":\"public-legal-compliance\",\"termsVersion\":\"2026-06-02\",\"privacyVersion\":\"2026-07-15\"}")
         LAUNCH=$(cat "$LAUNCH_BODY"); rm -f "$LAUNCH_BODY"
 
         AUDIT_ID=$(echo "$LAUNCH" | python3 -c "
@@ -76,7 +76,7 @@ runs:
 
         if [ "$HTTP_CODE" = "429" ]; then
           echo "⏳ Домен недавно проверялся (DOMAIN_COOLDOWN). Подключаемся к существующему аудиту: $AUDIT_ID"
-        elif [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
+        elif [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "202" ]; then
           echo "✅ Аудит запущен. ID: $AUDIT_ID"
         else
           echo "❌ Ошибка запуска аудита (HTTP $HTTP_CODE): $LAUNCH"
